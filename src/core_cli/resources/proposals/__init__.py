@@ -5,16 +5,15 @@ from __future__ import annotations
 
 import typer
 
+from . import create, manage
+from . import list as list_mod
+
 
 app = typer.Typer(
     name="proposals",
     help="Operations for the A3 Autonomous Proposal system (propose, approve, execute).",
     no_args_is_help=True,
 )
-
-# Standard Verbs
-from . import create, manage
-from . import list as list_mod
 
 
 # Register actions

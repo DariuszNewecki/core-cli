@@ -5,17 +5,17 @@ from __future__ import annotations
 
 import typer
 
+from . import claim as claim_mod
+from . import list as list_mod
+from . import next as next_mod
+from . import propose as propose_mod
+
 
 app = typer.Typer(
     name="lane",
     help="Assisted Remediation Lane: work delegated findings under human-gated approval.",
     no_args_is_help=True,
 )
-
-from . import claim as claim_mod
-from . import list as list_mod
-from . import next as next_mod
-from . import propose as propose_mod
 
 
 app.command("list")(list_mod.list_delegated)

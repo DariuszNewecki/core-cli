@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from . import manage
+from . import manage  # noqa: F401
 from .hub import app
 
 
