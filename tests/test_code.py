@@ -8,13 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+import typer
 
 from core_cli.resources.code.audit_duplicates import audit_duplicates_cmd
 from core_cli.resources.code.bridges import list_bridges_cmd
 from core_cli.resources.code.check_ui import check_ui_cmd
 from core_cli.resources.code.docstrings import fix_docstrings_command
 from core_cli.resources.code.format import format_command, format_imports_cmd
-from core_cli.resources.code.test import test_command
+from core_cli.resources.code.test import test_command as _test_command
 
 # Patch targets: where CoreApiClient is imported in each module.
 _AUDIT_CLIENT = "core_cli.resources.code.audit_duplicates.CoreApiClient"
@@ -118,7 +119,7 @@ async def test_audit_duplicates_failure_raises_exit() -> None:
     }
 
     with patch(_AUDIT_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             await audit_duplicates_cmd.__wrapped__(threshold=0.96)
 
 
@@ -177,7 +178,7 @@ async def test_list_bridges_unavailable_raises_exit() -> None:
     }
 
     with patch(_BRIDGES_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             await list_bridges_cmd.__wrapped__(consuming=None)
 
 
@@ -203,7 +204,7 @@ async def test_check_ui_violations_raises_exit() -> None:
     }
 
     with patch(_CHECK_UI_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             await check_ui_cmd.__wrapped__(write=False)
 
 
@@ -222,7 +223,7 @@ async def test_check_ui_write_fix_fails_raises_exit() -> None:
     mock_client._poll_run.return_value = {"status": "failed", "error": "boom"}
 
     with patch(_CHECK_UI_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             await check_ui_cmd.__wrapped__(write=True)
 
 
@@ -264,7 +265,7 @@ async def test_docstrings_no_run_id_raises_exit() -> None:
     mock_client.run_fix.return_value = {}
 
     with patch(_DOCSTRINGS_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             await fix_docstrings_command.__wrapped__(write=False, limit=3, file=None)
 
 
@@ -305,7 +306,7 @@ async def test_format_poll_failure_raises_exit() -> None:
     mock_client._poll_run.return_value = {"status": "failed", "error": "timeout"}
 
     with patch(_FORMAT_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             await format_command.__wrapped__(write=False)
 
 
@@ -318,7 +319,7 @@ async def test_test_command_success() -> None:
     mock_client = _make_async_client()
 
     with patch(_TEST_CLIENT, return_value=mock_client):
-        await test_command.__wrapped__()
+        await _test_command.__wrapped__()
 
     mock_client.quality_tests.assert_called_once()
     mock_client._poll_run.assert_called_once_with("run-test-001")
@@ -329,8 +330,8 @@ async def test_test_command_no_run_id_raises_exit() -> None:
     mock_client.quality_tests.return_value = {}
 
     with patch(_TEST_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
-            await test_command.__wrapped__()
+        with pytest.raises(typer.Exit):
+            await _test_command.__wrapped__()
 
 
 async def test_test_command_poll_failure_raises_exit() -> None:
@@ -338,5 +339,5 @@ async def test_test_command_poll_failure_raises_exit() -> None:
     mock_client._poll_run.return_value = {"status": "failed", "error": "test runner crashed"}
 
     with patch(_TEST_CLIENT, return_value=mock_client):
-        with pytest.raises(SystemExit):
-            await test_command.__wrapped__()
+        with pytest.raises(typer.Exit):
+            await _test_command.__wrapped__()
