@@ -5,27 +5,44 @@ build-backend = "hatchling.build"
 [project]
 name = "core-cli"
 version = "1.0.0"
-description = "Consumer governance CLI for CORE — pure HTTP client for governing repositories against CORE rules."
+description = "Consumer governance CLI for CORE — pure HTTP client for governing repositories against CORE constitutional rules."
 readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.12"
 authors = [
     { name = "Dariusz Newecki", email = "d.newecki@gmail.com" },
 ]
+keywords = ["governance", "cli", "code-quality", "constitutional-ai", "developer-tools"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Quality Assurance",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Development Status :: 4 - Beta",
+]
 dependencies = [
     "core-runtime>=2.8.0",
 ]
-
-[project.scripts]
-core = "core_cli.main:app"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/core_cli"]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
 ]
+
+[project.scripts]
+core = "core_cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/DariuszNewecki/CORE"
+Repository = "https://github.com/DariuszNewecki/core-cli"
+"Bug Tracker" = "https://github.com/DariuszNewecki/core-cli/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/core_cli"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
