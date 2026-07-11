@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from . import (
+from . import (  # noqa: F401
     query,
     rebuild,
     status,
