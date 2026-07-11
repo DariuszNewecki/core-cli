@@ -1,4 +1,7 @@
-# src/cli/resources/proposals/list.py
+# src/core_cli/resources/proposals/list.py
+
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 
@@ -8,7 +11,6 @@ from rich.console import Console
 from rich.table import Table
 
 from api.cli import CoreApiClient
-from cli.logic.autonomy.views import RISK_COLORS, STATUS_COLORS, render_list_table
 from cli.utils import core_command
 
 
@@ -17,6 +19,43 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 _DEFAULT_LIMIT = 20
+
+_STATUS_COLORS: dict[str, str] = {
+    "draft": "white",
+    "pending": "yellow",
+    "approved": "green",
+    "executing": "blue",
+    "completed": "green",
+    "failed": "red",
+    "rejected": "red",
+}
+_RISK_COLORS: dict[str, str] = {"safe": "green", "moderate": "yellow", "high": "red"}
+
+
+def _render_list_table(proposals: list[dict], title: str) -> Table:
+    table = Table(title=title)
+    table.add_column("ID", style="cyan", no_wrap=True)
+    table.add_column("Goal", style="white")
+    table.add_column("Status", style="bold")
+    table.add_column("Actions", justify="center")
+    table.add_column("Risk", justify="center")
+    table.add_column("Created", style="dim")
+    for p in proposals:
+        status = p["status"]
+        s_color = _STATUS_COLORS.get(status, "white")
+        risk_level = p["risk"]["overall_risk"] if p.get("risk") else "unknown"
+        r_color = _RISK_COLORS.get(risk_level, "white")
+        created = datetime.fromisoformat(p["created_at"]).strftime("%Y-%m-%d %H:%M")
+        goal = p.get("goal") or ""
+        table.add_row(
+            p["proposal_id"][:8] + "...",
+            goal[:50] + ("..." if len(goal) > 50 else ""),
+            f"[{s_color}]{status}[/{s_color}]",
+            str(len(p.get("actions", []))),
+            f"[{r_color}]{risk_level}[/{r_color}]",
+            created,
+        )
+    return table
 
 
 @core_command(dangerous=False, requires_context=False)
@@ -58,9 +97,9 @@ async def list_proposals(
         table.add_column("Created", style="dim")
         for p in proposals:
             s = p["status"]
-            s_color = STATUS_COLORS.get(s, "white")
+            s_color = _STATUS_COLORS.get(s, "white")
             risk_level = p["risk"]["overall_risk"] if p.get("risk") else "unknown"
-            r_color = RISK_COLORS.get(risk_level, "white")
+            r_color = _RISK_COLORS.get(risk_level, "white")
             created = datetime.fromisoformat(p["created_at"]).strftime("%Y-%m-%d %H:%M")
             goal = p.get("goal") or ""
             table.add_row(
@@ -73,4 +112,4 @@ async def list_proposals(
             )
         console.print(table)
     else:
-        console.print(render_list_table(proposals, title))
+        console.print(_render_list_table(proposals, title))

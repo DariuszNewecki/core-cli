@@ -11,6 +11,11 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-from . import docs, onboard, scout  # noqa: E402 — app must be defined first
+from . import (
+    docs,
+    onboard,
+    scout,
+)
+
 
 __all__ = ["app"]

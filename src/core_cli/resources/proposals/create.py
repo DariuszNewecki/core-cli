@@ -1,31 +1,42 @@
-# src/cli/resources/proposals/create.py
+# src/core_cli/resources/proposals/create.py
+
+from __future__ import annotations
 
 import httpx
 import typer
 from rich.console import Console
 
 from api.cli import CoreApiClient
-from cli.logic.autonomy.actions import parse_action_options
 from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
 
 
 console = Console()
 
 
-@command_meta(
-    canonical_name="proposals.create",
-    behavior=CommandBehavior.MUTATE,
-    layer=CommandLayer.WILL,
-    exposure=CommandExposure.USER_FACING,
-    summary="Create a new autonomous proposal for system modification.",
-    dangerous=True,
-)
+def _parse_action_options(action_strs: list[str]) -> list[dict]:
+    """Parse CLI action strings (action_id:key=val) into plain dicts.
+
+    Returns dicts with keys {action_id, parameters, order} matching the
+    POST /v1/proposals action body schema. Preserves input order.
+    """
+    proposal_actions: list[dict] = []
+    for i, action_str in enumerate(action_strs):
+        if ":" in action_str:
+            action_id, params_str = action_str.split(":", 1)
+            parameters: dict[str, str] = {}
+            for param in params_str.split(","):
+                if "=" in param:
+                    key, value = param.split("=", 1)
+                    parameters[key.strip()] = value.strip()
+        else:
+            action_id = action_str
+            parameters = {}
+        proposal_actions.append(
+            {"action_id": action_id, "parameters": parameters, "order": i}
+        )
+    return proposal_actions
+
+
 @core_command(dangerous=True, requires_context=False)
 # ID: e3cc0065-b821-49dd-b90e-df86633d01c6
 async def create_proposal(
@@ -45,7 +56,7 @@ async def create_proposal(
     Validates the plan and performs an initial risk assessment.
     """
     console.print(f"[bold cyan]📝 Crafting Proposal:[/bold cyan] {goal}")
-    proposal_actions = parse_action_options(actions)
+    proposal_actions = _parse_action_options(actions)
     if not proposal_actions:
         console.print(
             "[yellow]⚠️ Warning: No actions specified. "
@@ -84,5 +95,5 @@ async def create_proposal(
         f"[green]✅ Proposal created: [bold]{proposal['proposal_id']}[/bold][/green]"
     )
     console.print(
-        f"[dim]Run 'core-admin proposals approve {proposal['proposal_id']}' to authorize.[/dim]"
+        f"[dim]Run 'core proposals approve {proposal['proposal_id']}' to authorize.[/dim]"
     )
