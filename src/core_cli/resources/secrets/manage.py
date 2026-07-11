@@ -1,235 +1,20 @@
-# src/cli/resources/secrets/manage.py
-"""
-CLI commands for encrypted secrets management.
-Constitutional compliance: agent_governance, data_governance, operations.
-"""
+# src/core_cli/resources/secrets/manage.py
+
+"""Encrypted secrets management — consumer CLI over HTTP (ADR-146 D2)."""
 
 from __future__ import annotations
-
-import time
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from cli.utils import (
-    confirm_action,
-    core_command,
-    display_error,
-    display_info,
-    display_success,
-    display_warning,
-)
-from shared.action_types import ActionImpact, ActionResult
-from shared.exceptions import SecretNotFoundError, SecretsError
-from shared.infrastructure.database.session_manager import get_session
-from shared.infrastructure.secrets_service import get_secrets_service
+from api.cli import CoreApiClient
+from cli.utils import core_command
 
 from .hub import app
 
 
 console = Console()
-
-
-AUDIT_CONTEXT_SET = "cli:set"
-AUDIT_CONTEXT_SET_CHECK = "cli:set:check"
-AUDIT_CONTEXT_GET = "cli:get"
-AUDIT_CONTEXT_LIST = "cli:list"
-AUDIT_CONTEXT_DELETE = "cli:delete"
-
-
-async def _set_secret_internal(
-    key: str, value: str, description: str | None, force: bool
-) -> ActionResult:
-    """Store an encrypted secret in the database."""
-    start_time = time.time()
-    async with get_session() as db:
-        secrets_service = await get_secrets_service(db)
-        try:
-            overwrite_confirmed = False
-            if not force:
-                try:
-                    await secrets_service.get_secret(
-                        db, key, audit_context=AUDIT_CONTEXT_SET_CHECK
-                    )
-                    if not confirm_action(
-                        f"Secret '{key}' already exists. Overwrite?",
-                        abort_message="Overwrite cancelled",
-                    ):
-                        return ActionResult(
-                            action_id="secrets.set",
-                            ok=False,
-                            data={"key": key, "action": "cancelled"},
-                            duration_sec=time.time() - start_time,
-                            impact=ActionImpact.READ_ONLY,
-                            warnings=["User cancelled overwrite"],
-                        )
-                    overwrite_confirmed = True
-                except SecretNotFoundError:
-                    pass
-            await secrets_service.set_secret(
-                db,
-                key=key,
-                value=value,
-                description=description,
-                audit_context=AUDIT_CONTEXT_SET,
-            )
-            display_success(f"Secret '{key}' stored successfully")
-            return ActionResult(
-                action_id="secrets.set",
-                ok=True,
-                data={
-                    "key": key,
-                    "action": "overwritten" if overwrite_confirmed else "created",
-                    "has_description": description is not None,
-                },
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.WRITE_DATA,
-            )
-        except SecretsError as exc:
-            display_error(f"Failed to store secret: {exc.message}")
-            return ActionResult(
-                action_id="secrets.set",
-                ok=False,
-                data={"key": key, "error": exc.message},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-                warnings=[str(exc)],
-            )
-
-
-async def _get_internal(key: str, show: bool) -> ActionResult:
-    """Retrieve and decrypt a secret from the database."""
-    start_time = time.time()
-    async with get_session() as db:
-        secrets_service = await get_secrets_service(db)
-        try:
-            value = await secrets_service.get_secret(
-                db, key, audit_context=AUDIT_CONTEXT_GET
-            )
-            if show:
-                display_info(f"Secret '{key}':")
-                console.print(value)
-            else:
-                display_success(f"Secret '{key}' exists (use --show to display)")
-            return ActionResult(
-                action_id="secrets.get",
-                ok=True,
-                data={"key": key, "exists": True, "displayed": show},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-            )
-        except SecretNotFoundError:
-            display_error(f"Secret '{key}' not found")
-            return ActionResult(
-                action_id="secrets.get",
-                ok=False,
-                data={"key": key, "exists": False},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-                warnings=[f"Secret '{key}' not found"],
-            )
-        except SecretsError as exc:
-            display_error(f"Failed to retrieve secret: {exc.message}")
-            return ActionResult(
-                action_id="secrets.get",
-                ok=False,
-                data={"key": key, "error": exc.message},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-                warnings=[str(exc)],
-            )
-
-
-async def _list_secrets_internal() -> ActionResult:
-    """List all secret keys (not values) in the database."""
-    start_time = time.time()
-    async with get_session() as db:
-        secrets_service = await get_secrets_service(db)
-        try:
-            secrets_list = await secrets_service.list_secrets(db)
-            if not secrets_list:
-                display_warning("No secrets found in database")
-                return ActionResult(
-                    action_id="secrets.list",
-                    ok=True,
-                    data={"count": 0, "secrets": []},
-                    duration_sec=time.time() - start_time,
-                    impact=ActionImpact.READ_ONLY,
-                )
-            table = Table(title="Encrypted Secrets")
-            table.add_column("Key", style="cyan", no_wrap=True)
-            table.add_column("Last Rotated", style="dim")
-            table.add_column("Created", style="dim")
-            for secret in secrets_list:
-                table.add_row(
-                    secret["key"],
-                    str(secret.get("last_rotated_at"))
-                    if secret.get("last_rotated_at")
-                    else "never",
-                    str(secret.get("created_at"))
-                    if secret.get("created_at")
-                    else "unknown",
-                )
-            console.print(table)
-            display_info(f"Total: {len(secrets_list)} secrets")
-            return ActionResult(
-                action_id="secrets.list",
-                ok=True,
-                data={
-                    "count": len(secrets_list),
-                    "secrets": [s["key"] for s in secrets_list],
-                },
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-            )
-        except SecretsError as exc:
-            display_error(f"Failed to list secrets: {exc.message}")
-            return ActionResult(
-                action_id="secrets.list",
-                ok=False,
-                data={"error": exc.message},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-                warnings=[str(exc)],
-            )
-
-
-async def _delete_internal(key: str) -> ActionResult:
-    """Delete a secret from the database."""
-    start_time = time.time()
-    async with get_session() as db:
-        secrets_service = await get_secrets_service(db)
-        try:
-            await secrets_service.delete_secret(db, key)
-            display_success(f"Secret '{key}' deleted")
-            return ActionResult(
-                action_id="secrets.delete",
-                ok=True,
-                data={"key": key, "action": "deleted"},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.WRITE_DATA,
-            )
-        except SecretNotFoundError:
-            display_error(f"Secret '{key}' not found")
-            return ActionResult(
-                action_id="secrets.delete",
-                ok=False,
-                data={"key": key, "exists": False},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-                warnings=[f"Secret '{key}' not found"],
-            )
-        except SecretsError as exc:
-            display_error(f"Failed to delete secret: {exc.message}")
-            return ActionResult(
-                action_id="secrets.delete",
-                ok=False,
-                data={"key": key, "error": exc.message},
-                duration_sec=time.time() - start_time,
-                impact=ActionImpact.READ_ONLY,
-                warnings=[str(exc)],
-            )
 
 
 @app.command("set")
@@ -244,24 +29,36 @@ async def set_secret(
         "-v",
         prompt=True,
         hide_input=True,
-        help="Secret value (will be encrypted)",
+        help="Secret value (will be encrypted at rest)",
     ),
     description: str | None = typer.Option(
         None, "--description", "-d", help="Optional description"
     ),
     force: bool = typer.Option(
-        False, "--force", "-f", help="Overwrite without confirmation"
+        False, "--force", "-f", help="Overwrite without 409 error if key exists"
     ),
 ) -> None:
-    """Store an encrypted secret in the database."""
+    """Store an encrypted secret in the CORE installation."""
     if not key.strip():
-        display_error("Secret key cannot be empty")
+        console.print("[red]Secret key cannot be empty.[/red]")
         raise typer.Exit(code=1)
-    result = await _set_secret_internal(
-        key=key, value=value, description=description, force=force
-    )
-    if not result.ok:
-        raise typer.Exit(code=1)
+    client = CoreApiClient()
+    try:
+        result = await client.secrets.set_secret(
+            key=key, value=value, description=description, force=force
+        )
+    except Exception as exc:
+        import httpx
+
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 409:
+            console.print(
+                f"[red]Secret '{key}' already exists. Use --force to overwrite.[/red]"
+            )
+            raise typer.Exit(code=1) from exc
+        console.print(f"[red]Failed to store secret: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    action = result.get("action", "stored")
+    console.print(f"[green]Secret '{key}' {action}.[/green]")
 
 
 @app.command("get")
@@ -272,20 +69,47 @@ async def get(
     key: str = typer.Argument(..., help="Secret key to retrieve"),
     show: bool = typer.Option(False, "--show", "-s", help="Display the secret value"),
 ) -> None:
-    """Retrieve an encrypted secret from the database."""
-    result = await _get_internal(key=key, show=show)
-    if not result.ok:
-        raise typer.Exit(code=1)
+    """Check whether a secret exists (optionally reveal value with --show)."""
+    client = CoreApiClient()
+    try:
+        result = await client.secrets.get_secret(key=key, show=show)
+    except Exception as exc:
+        import httpx
+
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 404:
+            console.print(f"[red]Secret '{key}' not found.[/red]")
+            raise typer.Exit(code=1) from exc
+        raise
+    if show:
+        console.print(f"[bold]Secret '{key}':[/bold]")
+        console.print(result.get("value", ""))
+    else:
+        console.print(f"[green]Secret '{key}' exists.[/green]")
 
 
 @app.command("list")
 @core_command(dangerous=False, requires_context=False)
 # ID: cf23ee88-7f5e-47e9-91de-7414ef0c36ed
 async def list_secrets(ctx: typer.Context) -> None:
-    """List all secret keys in the database (does not show values)."""
-    result = await _list_secrets_internal()
-    if not result.ok:
-        raise typer.Exit(code=1)
+    """List all secret keys in the CORE installation (values not shown)."""
+    client = CoreApiClient()
+    result = await client.secrets.list_secrets()
+    secrets = result.get("secrets") or []
+    if not secrets:
+        console.print("[yellow]No secrets found.[/yellow]")
+        return
+    table = Table(title="Encrypted Secrets")
+    table.add_column("Key", style="cyan", no_wrap=True)
+    table.add_column("Last Rotated", style="dim")
+    table.add_column("Created", style="dim")
+    for s in secrets:
+        table.add_row(
+            s["key"],
+            str(s.get("last_rotated_at") or "never"),
+            str(s.get("created_at") or "unknown"),
+        )
+    console.print(table)
+    console.print(f"[dim]Total: {result.get('count', len(secrets))} secrets[/dim]")
 
 
 @app.command("delete")
@@ -296,14 +120,41 @@ async def delete(
     key: str = typer.Argument(..., help="Secret key to delete"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
-    """Delete a secret from the database."""
-    if not yes and (
-        not confirm_action(
-            f"Are you sure you want to delete secret '{key}'?",
-            abort_message="Deletion cancelled",
-        )
-    ):
-        return
-    result = await _delete_internal(key=key)
-    if not result.ok:
-        raise typer.Exit(code=1)
+    """Permanently delete a secret from the CORE installation."""
+    if not yes:
+        typer.confirm(f"Delete secret '{key}'?", abort=True)
+    client = CoreApiClient()
+    try:
+        await client.secrets.delete_secret(key)
+    except Exception as exc:
+        import httpx
+
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 404:
+            console.print(f"[red]Secret '{key}' not found.[/red]")
+            raise typer.Exit(code=1) from exc
+        raise
+    console.print(f"[green]Secret '{key}' deleted.[/green]")
+
+
+@app.command("rotate")
+@core_command(dangerous=True, requires_context=False)
+# ID: 634e4701-120b-4a5e-88ef-f4cb0db315a9
+async def rotate(
+    ctx: typer.Context,
+    key: str = typer.Argument(..., help="Secret key to rotate"),
+    new_value: str = typer.Option(
+        ..., "--value", "-v", prompt=True, hide_input=True, help="New secret value"
+    ),
+) -> None:
+    """Rotate the value of an existing secret (updates last_rotated_at)."""
+    client = CoreApiClient()
+    try:
+        await client.secrets.rotate_secret(key, new_value)
+    except Exception as exc:
+        import httpx
+
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 404:
+            console.print(f"[red]Secret '{key}' not found.[/red]")
+            raise typer.Exit(code=1) from exc
+        raise
+    console.print(f"[green]Secret '{key}' rotated.[/green]")
