@@ -1,15 +1,14 @@
-# src/cli/resources/symbols/sync.py
+# src/core_cli/resources/symbols/sync.py
+
+"""Synchronize filesystem symbols with the DB — consumer CLI over HTTP (ADR-146 D2)."""
+
+from __future__ import annotations
+
 import typer
 from rich.console import Console
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
-from shared.context import CoreContext
 
 from .hub import app
 
@@ -18,15 +17,7 @@ console = Console()
 
 
 @app.command("sync")
-@command_meta(
-    canonical_name="symbols.sync",
-    behavior=CommandBehavior.MUTATE,
-    layer=CommandLayer.BODY,
-    exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="Synchronize database with codebase symbols.",
-    dangerous=True,
-)
-@core_command(dangerous=True, requires_context=True)
+@core_command(dangerous=True, requires_context=False)
 # ID: 7de43597-32ac-4e0f-9e55-af90f4c716f6
 async def sync_symbols(
     ctx: typer.Context,
@@ -34,15 +25,15 @@ async def sync_symbols(
         False, "--write", help="Apply synchronization to the database."
     ),
 ) -> None:
-    """
-    Synchronize filesystem symbols with the PostgreSQL Knowledge Graph.
+    """Synchronize filesystem symbols with the PostgreSQL Knowledge Graph.
 
     Scans 'src/' and updates the 'core.symbols' table.
+    Pass --write to apply changes (default is dry-run).
     """
-    core_context: CoreContext = ctx.obj
     mode = "WRITE" if write else "DRY-RUN"
-    console.print(f"[bold cyan]🔄 Synchronizing Symbols to DB ({mode})...[/bold cyan]")
-    if core_context.action_executor is None:
-        console.print("[red]Error: action_executor not initialized[/red]")
-        raise typer.Exit(1)
-    await core_context.action_executor.execute("sync.db", write=write)
+    console.print(f"[bold cyan]Synchronizing Symbols to DB ({mode})...[/bold cyan]")
+    client = CoreApiClient()
+    result = await client.fix.run_fix("sync.db", write=write)
+    run_id = result.get("run_id")
+    console.print(f"[green]Dispatched sync.db run {run_id}.[/green]")
+    console.print(f"[dim]Poll with: core-admin fix status {run_id}[/dim]")
