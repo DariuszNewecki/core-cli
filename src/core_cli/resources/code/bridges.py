@@ -1,4 +1,4 @@
-# src/cli/resources/code/bridges.py
+# src/core_cli/resources/code/bridges.py
 """CLI command: list declared architecture bridge points (issue #617)."""
 
 from __future__ import annotations
@@ -7,13 +7,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
 
 from .hub import app
 
@@ -22,14 +17,6 @@ console = Console()
 
 
 @app.command("bridges")
-@command_meta(
-    canonical_name="code.bridges",
-    behavior=CommandBehavior.READ,
-    layer=CommandLayer.SHARED,
-    exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="List declared architecture bridge points where data crosses layer boundaries.",
-    dangerous=False,
-)
 @core_command(dangerous=False, requires_context=False)
 # ID: 5b2e91f3-a4c8-4d7e-b6f0-8c1a9d2e3f04
 async def list_bridges_cmd(
@@ -48,15 +35,16 @@ async def list_bridges_cmd(
     that consume a specific data type.
 
     Example:
-      core-admin code bridges --consuming AuditFinding
+      core code bridges --consuming AuditFinding
     """
-    from shared.infrastructure.intent.architecture_bridges import (
-        bridges_consuming,
-        load_bridges,
-    )
+    client = CoreApiClient()
+    result = await client.inspect.analysis_bridges(consuming=consuming)
 
-    bridges = bridges_consuming(consuming) if consuming else load_bridges()
+    if not result.get("available"):
+        console.print(f"[red]✗ Bridges unavailable: {result.get('error')}[/red]")
+        raise typer.Exit(1)
 
+    bridges = result.get("bridges", [])
     if not bridges:
         if consuming:
             console.print(
@@ -80,17 +68,23 @@ async def list_bridges_cmd(
     table.add_column("Attribution", style="magenta")
     table.add_column("ADRs", style="dim")
 
-    for bridge in sorted(bridges, key=lambda b: b.id):
+    for bridge in bridges:
+        source = bridge.get("source_layer") or (
+            bridge.get("source_context", "")[:40]
+        )
+        attr_mechanism = bridge.get("attribution_mechanism", "")
+        attr_field = bridge.get("attribution_field")
+        attribution = (
+            f"{attr_mechanism} → {attr_field}" if attr_field else attr_mechanism
+        )
         table.add_row(
-            bridge.id,
-            bridge.bridge_class,
-            bridge.bridge_layer,
-            bridge.source_layer or bridge.source_context[:40],
-            bridge.sink_target,
-            f"{bridge.attribution_mechanism} → {bridge.attribution_field}"
-            if bridge.attribution_field
-            else bridge.attribution_mechanism,
-            ", ".join(bridge.authority_adrs),
+            bridge.get("id", ""),
+            bridge.get("bridge_class", ""),
+            bridge.get("bridge_layer", ""),
+            source,
+            bridge.get("sink_target", ""),
+            attribution,
+            ", ".join(bridge.get("authority_adrs", [])),
         )
 
     console.print(table)

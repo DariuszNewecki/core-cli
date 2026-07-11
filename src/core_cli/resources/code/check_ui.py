@@ -1,4 +1,4 @@
-# src/cli/resources/code/check_ui.py
+# src/core_cli/resources/code/check_ui.py
 """
 Code UI Compliance Action.
 Ensures Body-layer modules are HEADLESS (no print, rich, or direct os.environ).
@@ -22,7 +22,6 @@ console = Console()
 @core_command(dangerous=True, requires_context=False)
 # ID: 662d6bed-c6fc-4120-ae34-d9063f703994
 async def check_ui_cmd(
-    ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Use LLM to autonomously fix UI contract violations."
     ),

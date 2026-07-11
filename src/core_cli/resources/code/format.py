@@ -1,4 +1,6 @@
-# src/cli/resources/code/format.py
+# src/core_cli/resources/code/format.py
+from __future__ import annotations
+
 import logging
 
 import typer
@@ -31,7 +33,6 @@ async def _run_and_poll(fix_id: str, *, write: bool) -> None:
 @core_command(dangerous=True, requires_context=False)
 # ID: 3dfcec28-34fd-44d4-9aec-bcbf29eb6d76
 async def format_command(
-    ctx: typer.Context,
     write: bool = typer.Option(
         False, "--write", help="Apply formatting changes to disk."
     ),
@@ -52,7 +53,6 @@ async def format_command(
 @core_command(dangerous=True, requires_context=False)
 # ID: 582d69b9-6f50-411a-a950-37e66ce2e07b
 async def format_imports_cmd(
-    ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply import sorting to disk."),
 ) -> None:
     """

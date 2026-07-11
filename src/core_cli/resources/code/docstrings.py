@@ -1,15 +1,11 @@
-# src/cli/resources/code/docstrings.py
+# src/core_cli/resources/code/docstrings.py
+from __future__ import annotations
+
 import typer
 from rich.console import Console
 
 from api.cli import CoreApiClient
 from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
 
 from .hub import app
 
@@ -18,18 +14,9 @@ console = Console()
 
 
 @app.command("docstrings")
-@command_meta(
-    canonical_name="code.docstrings",
-    behavior=CommandBehavior.MUTATE,
-    layer=CommandLayer.WILL,
-    exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="Heal missing docstrings using constitutional reasoning.",
-    dangerous=True,
-)
 @core_command(dangerous=True, requires_context=False)
 # ID: 9f0d0239-d29d-4dff-8c32-3fdecaa809e9
 async def fix_docstrings_command(
-    ctx: typer.Context,
     write: bool = typer.Option(False, "--write", help="Apply changes."),
     limit: int = typer.Option(3, "--limit", help="Symbols to process."),
     file: str | None = typer.Option(
