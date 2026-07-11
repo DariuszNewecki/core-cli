@@ -11,7 +11,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-from . import (
+from . import (  # noqa: E402, F401
     docs,
     onboard,
     scout,
