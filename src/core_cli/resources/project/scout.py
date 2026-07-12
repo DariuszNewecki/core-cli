@@ -62,6 +62,11 @@ async def scout_project(
     (ADR-119 D5 — no --accept-all). Requires Phase A first:
     run `project onboard <target> --write` before this command.
     """
+    # path is sent as a plain string over HTTP for server-side signal
+    # extraction — a relative path would resolve against the CORE API
+    # process's cwd, not the caller's, and silently analyze the wrong repo.
+    path = path.resolve()
+
     console.print(Rule("[bold cyan]Scout — Phase B: Rule Induction[/bold cyan]"))
     console.print(f"[bold cyan]Target:[/bold cyan] {path}")
 
@@ -101,7 +106,7 @@ async def scout_project(
         return
 
     # ── Write ─────────────────────────────────────────────────────────────────
-    target_intent = Path(path).resolve() / ".intent"
+    target_intent = path / ".intent"
     rules_json = _build_rules_document(confirmed)
     mappings_yaml = _build_mappings_document(confirmed)
 

@@ -46,6 +46,12 @@ async def onboard_project(
     Pass --write --stage to write to work/staged/<name>/ first, inspect the
     files, then run `project onboard promote <path>` to deliver to the target.
     """
+    # `path` is sent as a plain string over HTTP and resolved by the CORE API
+    # process, not this CLI — a relative path (e.g. ".") would silently
+    # resolve against the *server's* cwd, not the caller's. Resolve to
+    # absolute here so it means the same thing on both sides.
+    path = path.resolve()
+
     if stage and not write:
         console.print(
             "[yellow]--stage has no effect without --write "
@@ -77,7 +83,7 @@ async def onboard_project(
         console.print(
             f"\n[bold green]Staged to[/bold green] {stage_dir}/.intent\n"
             f"[dim]Inspect, then run:[/dim]  "
-            f"[bold]core-admin project onboard promote {path}[/bold]"
+            f"[bold]core project promote {path}[/bold]"
         )
     elif mode == "dry-run":
         console.print("[yellow]DRY-RUN complete. Pass --write to apply.[/yellow]")
@@ -100,6 +106,9 @@ async def promote_onboard(
     Reads from work/staged/<name>/.intent/ (within CORE's repo) and writes to
     <path>/.intent/. Run `project onboard promote --help` for full lifecycle details.
     """
+    # Same reasoning as onboard_project: resolve before sending over HTTP.
+    path = path.resolve()
+
     console.print(f"[bold cyan]Promoting staged onboard to:[/bold cyan] {path}")
     client = CoreApiClient()
     try:
@@ -107,4 +116,4 @@ async def promote_onboard(
     except Exception as exc:
         console.print(f"[red]Promote failed: {exc}[/red]")
         raise typer.Exit(1) from exc
-    console.print(f"[bold green]Promoted to[/bold green] {Path(path).resolve() / '.intent'}")
+    console.print(f"[bold green]Promoted to[/bold green] {path / '.intent'}")
