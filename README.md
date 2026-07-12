@@ -35,7 +35,7 @@ export CORE_API_URL=http://localhost:8000
 | `code` | `actions`, `audit_duplicates`, `bridges`, `check_imports`, `check_ui`, `docstrings`, `fix_atomic`, `format`, `integrity`, `lint`, `logging`, `test` |
 | `symbols` | `audit`, `fix_ids`, `resolve_duplicates`, `sync` |
 | `vectors` | `query`, `rebuild`, `status`, `sync`, `sync_code` |
-| `project` | `docs`, `onboard`, `scout` |
+| `project` | `docs`, `onboard`, `promote`, `scout` |
 
 ## Architecture
 

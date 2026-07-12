@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "core-cli"
-version = "1.0.1"
+version = "1.0.2"
 description = "Consumer governance CLI for CORE — pure HTTP client for governing repositories against CORE constitutional rules."
 readme = "README.md"
 license = {text = "MIT"}
