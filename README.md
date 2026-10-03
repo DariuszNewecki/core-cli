@@ -1,6 +1,22 @@
 # core-cli
 
-Consumer governance CLI for [CORE](https://github.com/DariuszNewecki/CORE) — pure HTTP client for governing repositories against CORE constitutional rules.
+The consumer command-line tool for [CORE](https://github.com/DariuszNewecki/CORE): review
+and approve proposals, manage secrets, onboard a repository (BYOR), and work the assisted
+remediation lane. Its binary is called `core`.
+
+`core-cli` is a pure HTTP client. Every command talks to a **running CORE API**; nothing
+runs in-process. The operator tool, `core-admin`, ships separately in `core-runtime`
+([which one do I need?](https://dariusznewecki.github.io/CORE/cli-reference/)).
+
+## Prerequisites
+
+- Python 3.12+
+- A reachable CORE API, which itself needs PostgreSQL and Qdrant. See CORE's
+  [getting started](https://dariusznewecki.github.io/CORE/getting-started/).
+
+> **No authentication.** OSS CORE runs in trusted-localhost mode: the API binds to
+> loopback and accepts every request. Anyone who can reach it can approve and execute
+> proposals. Keep it on `127.0.0.1` and do not expose it on a shared network.
 
 ## Install
 
@@ -8,39 +24,50 @@ Consumer governance CLI for [CORE](https://github.com/DariuszNewecki/CORE) — p
 pip install core-cli
 ```
 
-## Usage
+This also installs `core-runtime`, which provides the shared HTTP client.
+
+## Configure
+
+`core` uses `http://127.0.0.1:8000` unless you point it elsewhere:
 
 ```bash
-core lane list
-core proposals list
-core code audit_duplicates --help
-core symbols audit --help
-core vectors query --help
-core project onboard --help
+export CORE_API_URL=http://127.0.0.1:8000
 ```
 
-Requires a running CORE instance. Configure via environment:
+## Use
 
 ```bash
-export CORE_API_URL=http://localhost:8000
+core proposals list                 # proposals awaiting a decision
+core proposals show <id>            # risk assessment and planned changes
+core lane list                      # delegated findings waiting for assisted remediation
+core project onboard <path>         # preview delivering the machinery floor (BYOR)
+core project onboard <path> --write # deliver it
+core <group> <command> --help       # options for any command
 ```
+
+Commands that change files or data **preview by default** and act only with `--write`.
 
 ## Commands
 
-| Namespace | Commands |
-|-----------|----------|
-| `lane` | `list`, `next`, `claim`, `propose` |
-| `proposals` | `list`, `create`, `show`, `approve`, `reject`, `execute` |
-| `secrets` | manage encrypted secrets |
-| `code` | `actions`, `audit_duplicates`, `bridges`, `check_imports`, `check_ui`, `docstrings`, `fix_atomic`, `format`, `integrity`, `lint`, `logging`, `test` |
-| `symbols` | `audit`, `fix_ids`, `resolve_duplicates`, `sync` |
-| `vectors` | `query`, `rebuild`, `status`, `sync`, `sync_code` |
-| `project` | `docs`, `onboard`, `promote`, `scout` |
+| Group | What it covers |
+|---|---|
+| `proposals` | `list`, `show`, `create`, `approve`, `reject`, `execute` |
+| `lane` | `list`, `next`, `claim`, `propose`: assisted remediation of delegated findings |
+| `project` | `onboard`, `scout`, `promote`, `docs`: bring a repository under governance (BYOR) |
+| `secrets` | `list`, `get`, `set`, `rotate`, `delete`: encrypted secrets in the CORE installation |
+| `code` | quality and verification: `lint`, `format`, `test`, `check-imports`, `audit-duplicates`, … |
+| `symbols` | `audit`, `sync`, `fix-ids`, `resolve-duplicates` |
+| `vectors` | `query`, `status`, `sync`, `sync-code`, `rebuild` |
+
+Every command, option and default is in the generated
+[`core` command reference](https://dariusznewecki.github.io/CORE/reference/core/).
 
 ## Architecture
 
-All commands communicate exclusively over the CORE HTTP API — no in-process access required.
-`core-cli` depends on `core-runtime` for shared HTTP client infrastructure (`api.cli.*`)
-and CLI utilities (`cli.utils.*`).
+The split between the consumer CLI (`core`) and the operator CLI (`core-admin`) is
+recorded in
+[ADR-146](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-146-cli-consumer-operator-split.md).
 
-See [ADR-146](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-146-cli-consumer-operator-split.md) for the consumer/operator split rationale.
+## License
+
+MIT. See [LICENSE](LICENSE).
