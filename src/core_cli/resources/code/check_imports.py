@@ -13,8 +13,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -24,7 +24,7 @@ console = Console()
 
 
 @app.command("check-imports")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 53db749b-a5cf-44e4-8e7f-47e6499aec0b
 async def check_imports_cmd(ctx: typer.Context) -> None:
     """

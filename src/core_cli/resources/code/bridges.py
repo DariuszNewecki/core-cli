@@ -7,8 +7,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -17,7 +17,7 @@ console = Console()
 
 
 @app.command("bridges")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 5b2e91f3-a4c8-4d7e-b6f0-8c1a9d2e3f04
 async def list_bridges_cmd(
     consuming: str | None = typer.Option(
@@ -69,9 +69,7 @@ async def list_bridges_cmd(
     table.add_column("ADRs", style="dim")
 
     for bridge in bridges:
-        source = bridge.get("source_layer") or (
-            bridge.get("source_context", "")[:40]
-        )
+        source = bridge.get("source_layer") or (bridge.get("source_context", "")[:40])
         attr_mechanism = bridge.get("attribution_mechanism", "")
         attr_field = bridge.get("attribution_field")
         attribution = (

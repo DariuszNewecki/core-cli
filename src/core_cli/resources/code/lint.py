@@ -2,8 +2,8 @@
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -12,7 +12,7 @@ console = Console()
 
 
 @app.command("lint")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 044f8edf-3262-4e8b-b394-fd76bdd74136
 async def lint_command() -> None:
     """Check code quality using Black and Ruff (Read-Only)."""

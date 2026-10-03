@@ -39,10 +39,11 @@ jobs:
       - name: Install mypy + stubs
         run: pip install mypy types-PyYAML
 
+      - name: Install package
+        run: pip install -e .
+
       - name: mypy
-        # core-runtime ships no type stubs; ignore-missing-imports preserves
-        # checking of core-cli's own code without requiring stub packages.
-        run: mypy src/ --ignore-missing-imports --no-error-summary
+        run: mypy src/ --no-error-summary
 
   test:
     name: Test
@@ -55,10 +56,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install package + dev deps
-        # core-runtime is on PyPI (>=2.8.0); installs as a transitive dep.
         run: pip install -e ".[dev]"
 
       - name: Run tests
+        # tests/test_contract.py reads CORE's OpenAPI contract from CORE's main
+        # branch on GitHub (no CORE checkout here).
         run: pytest tests/ -v
 
   build:

@@ -2,13 +2,7 @@
 
 from __future__ import annotations
 
-from . import (  # noqa: F401
-    query,
-    rebuild,
-    status,
-    sync,
-    sync_code,
-)
+from . import query  # noqa: F401
 from .hub import app
 
 

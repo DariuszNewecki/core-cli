@@ -1,5 +1,5 @@
 # src/cli/resources/lane/propose.py
-"""`core-admin lane propose` — submit a validated agent diff for a delegated finding."""
+"""`core lane propose` — submit a validated agent diff for a delegated finding."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ console = Console()
 _VALIDATE_ACTION = "assisted.validate_diff"
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: e0f6bd92-4391-4d80-b0e7-40f2e5f32de6
 async def propose(
     finding_id: str = typer.Argument(
@@ -114,6 +114,5 @@ async def propose(
         f"({len(files)} file(s)) is awaiting your approval."
     )
     console.print(
-        "[dim]Review and approve with "
-        "`core-admin proposals approve <proposal-id>`.[/dim]"
+        "[dim]Review and approve with `core proposals approve <proposal-id>`.[/dim]"
     )

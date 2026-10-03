@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "core-cli"
 version = "1.0.2"
-description = "Consumer governance CLI for CORE — pure HTTP client for governing repositories against CORE constitutional rules."
+description = "Consumer governance CLI for CORE — an HTTP client for governing repositories against CORE constitutional rules."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.12"
@@ -23,8 +23,12 @@ classifiers = [
     "Intended Audience :: Developers",
     "Development Status :: 4 - Beta",
 ]
+# HTTP client only: no dependency on core-runtime (ADR-146, amended 2026-10-03).
 dependencies = [
-    "core-runtime>=2.9.0",
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "rich>=13.7",
+    "typer>=0.16",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +64,6 @@ src = ["src"]
 ignore = ["B008"]
 
 [tool.ruff.lint.isort]
-# Match the layout the code was written in (CORE's settings): core-runtime's
-# packages group with core_cli, two blank lines after imports.
-known-first-party = ["api", "body", "cli", "core_cli", "mind", "shared", "will"]
+# Two blank lines after imports, matching CORE's layout.
+known-first-party = ["core_cli"]
 lines-after-imports = 2

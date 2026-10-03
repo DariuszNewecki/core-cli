@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import typer
 
-from . import create, manage
+from . import create, integrate, manage
 from . import list as list_mod
 
 
@@ -23,5 +23,6 @@ app.command("show")(manage.show_proposal)
 app.command("approve")(manage.approve_proposal)
 app.command("reject")(manage.reject_proposal)
 app.command("execute")(manage.execute_proposal)
+app.command("integrate")(integrate.integrate_cmd)
 
 __all__ = ["app"]

@@ -1,26 +1,23 @@
-# src/cli/resources/proposals/integrate.py
-"""
-Proposals Integration Action.
-Orchestrates the final integration of staged code changes into the system.
+# src/core_cli/resources/proposals/integrate.py
+"""`core proposals integrate` — commit the governed repository's staged work.
+
+Calls POST /v1/integrate: CORE stages, formats/lints and commits the working
+tree of the repository it governs.
 """
 
 from __future__ import annotations
 
-import httpx
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
-
-from . import app
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 console = Console()
 
 
-@app.command("integrate")
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: f779e122-cafa-44a9-80cc-b4b1a31cc363
 async def integrate_cmd(
     commit_message: str = typer.Option(
@@ -30,28 +27,11 @@ async def integrate_cmd(
         False, "--write", help="Commit and integrate staged changes (default: dry-run)."
     ),
 ) -> None:
-    """Finalize and integrate staged changes into the repository."""
-    console.print("[bold cyan]🚀 Initiating integration sequence...[/bold cyan]")
+    """Integrate staged changes into the governed repository and commit them."""
     if not write:
-        console.print(
-            "[yellow]DRY-RUN:[/yellow] Pass [bold]--write[/bold] to integrate staged changes."
-        )
         return
-    client = CoreApiClient()
-    try:
-        await client.integrate(commit_message=commit_message)
-    except httpx.HTTPStatusError as exc:
-        try:
-            detail = exc.response.json().get("detail", {})
-        except ValueError:
-            detail = {}
-        exit_code = (
-            (detail or {}).get("exit_code", 1) if isinstance(detail, dict) else 1
-        )
-        error = (detail or {}).get("error") if isinstance(detail, dict) else str(detail)
-        console.print(f"[red]Integration failed: {error or exc.response.text}[/red]")
-        raise typer.Exit(exit_code) from exc
-
+    console.print("[bold cyan]🚀 Integrating staged changes...[/bold cyan]")
+    await CoreApiClient().integrate(commit_message=commit_message)
     console.print(
         "[bold green]✅ Changes successfully integrated and committed.[/bold green]"
     )

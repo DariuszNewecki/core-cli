@@ -1,5 +1,5 @@
 # src/cli/resources/lane/list.py
-"""`core-admin lane list` — show the Assisted Remediation Lane work queue."""
+"""`core lane list` — show the Assisted Remediation Lane work queue."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ console = Console()
 _DEFAULT_LIMIT = 20
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 0f0c8d2e-5b4a-4c1e-9a7f-2d3b6e8c1a44
 async def list_delegated(
     limit: int = typer.Option(

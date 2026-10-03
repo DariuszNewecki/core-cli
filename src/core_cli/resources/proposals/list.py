@@ -10,8 +10,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def _render_list_table(proposals: list[dict], title: str) -> Table:
     return table
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 0485ff02-01f2-4f9d-b22d-9fde692b8bf7
 async def list_proposals(
     status: str = typer.Option(

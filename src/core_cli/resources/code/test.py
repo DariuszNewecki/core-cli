@@ -4,8 +4,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -14,7 +14,7 @@ console = Console()
 
 
 @app.command("test")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: b89ff2a7-0bf3-47cf-90ba-66a3801630c3
 async def test_command() -> None:
     """Run the project test suite via pytest."""

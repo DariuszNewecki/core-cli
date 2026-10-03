@@ -6,8 +6,8 @@ import httpx
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 console = Console()
@@ -37,7 +37,7 @@ def _parse_action_options(action_strs: list[str]) -> list[dict]:
     return proposal_actions
 
 
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: e3cc0065-b821-49dd-b90e-df86633d01c6
 async def create_proposal(
     goal: str = typer.Argument(..., help="Strategic goal of the proposal."),

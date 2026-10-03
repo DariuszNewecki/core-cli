@@ -8,7 +8,6 @@ from core_cli.resources.code import app as code_app
 from core_cli.resources.lane import app as lane_app
 from core_cli.resources.project import app as project_app
 from core_cli.resources.proposals import app as proposals_app
-from core_cli.resources.secrets import app as secrets_app
 from core_cli.resources.symbols import app as symbols_app
 from core_cli.resources.vectors import app as vectors_app
 
@@ -22,7 +21,6 @@ app = typer.Typer(
 
 app.add_typer(lane_app, name="lane")
 app.add_typer(proposals_app, name="proposals")
-app.add_typer(secrets_app, name="secrets")
 app.add_typer(code_app, name="code")
 app.add_typer(symbols_app, name="symbols")
 app.add_typer(vectors_app, name="vectors")

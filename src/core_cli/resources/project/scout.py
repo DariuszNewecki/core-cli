@@ -24,8 +24,8 @@ import yaml
 from rich.console import Console
 from rich.rule import Rule
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from . import app
 
@@ -38,7 +38,7 @@ _MAPPINGS_OUTPUT = "enforcement/mappings/scout.yaml"
 
 
 @app.command("scout")
-@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
+@core_command(dangerous=True)
 # ID: 55eee96e-6306-4452-a334-29c71135196e
 async def scout_project(
     ctx: typer.Context,

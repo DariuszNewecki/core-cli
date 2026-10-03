@@ -4,14 +4,8 @@ import logging
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -21,15 +15,7 @@ console = Console()
 
 
 @app.command("fix-atomic")
-@command_meta(
-    canonical_name="code.fix-atomic",
-    behavior=CommandBehavior.MUTATE,
-    layer=CommandLayer.BODY,
-    exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="Heal violations in the Atomic Action pattern.",
-    dangerous=True,
-)
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: 1a0797b9-e800-4783-9305-158b5f9247af
 async def fix_atomic_cmd(
     ctx: typer.Context,

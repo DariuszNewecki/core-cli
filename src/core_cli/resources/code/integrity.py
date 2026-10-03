@@ -12,8 +12,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 

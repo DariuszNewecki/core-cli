@@ -12,7 +12,6 @@ import typer
 
 from core_cli.resources.code.audit_duplicates import audit_duplicates_cmd
 from core_cli.resources.code.bridges import list_bridges_cmd
-from core_cli.resources.code.check_ui import check_ui_cmd
 from core_cli.resources.code.docstrings import fix_docstrings_command
 from core_cli.resources.code.format import format_command, format_imports_cmd
 from core_cli.resources.code.test import test_command as _test_command
@@ -20,7 +19,6 @@ from core_cli.resources.code.test import test_command as _test_command
 # Patch targets: where CoreApiClient is imported in each module.
 _AUDIT_CLIENT = "core_cli.resources.code.audit_duplicates.CoreApiClient"
 _BRIDGES_CLIENT = "core_cli.resources.code.bridges.CoreApiClient"
-_CHECK_UI_CLIENT = "core_cli.resources.code.check_ui.CoreApiClient"
 _DOCSTRINGS_CLIENT = "core_cli.resources.code.docstrings.CoreApiClient"
 _FORMAT_CLIENT = "core_cli.resources.code.format.CoreApiClient"
 _TEST_CLIENT = "core_cli.resources.code.test.CoreApiClient"
@@ -180,51 +178,6 @@ async def test_list_bridges_unavailable_raises_exit() -> None:
     with patch(_BRIDGES_CLIENT, return_value=mock_client):
         with pytest.raises(typer.Exit):
             await list_bridges_cmd.__wrapped__(consuming=None)
-
-
-# ---------------------------------------------------------------------------
-# check_ui_cmd
-# ---------------------------------------------------------------------------
-
-
-async def test_check_ui_clean() -> None:
-    mock_client = _make_async_client()
-
-    with patch(_CHECK_UI_CLIENT, return_value=mock_client):
-        await check_ui_cmd.__wrapped__(write=False)
-
-    mock_client.quality_body_ui.assert_called_once()
-
-
-async def test_check_ui_violations_raises_exit() -> None:
-    mock_client = _make_async_client()
-    mock_client.quality_body_ui.return_value = {
-        "status": "violations",
-        "violations": [{"file": "src/body/foo.py", "line": 42, "type": "print"}],
-    }
-
-    with patch(_CHECK_UI_CLIENT, return_value=mock_client):
-        with pytest.raises(typer.Exit):
-            await check_ui_cmd.__wrapped__(write=False)
-
-
-async def test_check_ui_write_dispatches_fix() -> None:
-    mock_client = _make_async_client()
-
-    with patch(_CHECK_UI_CLIENT, return_value=mock_client):
-        await check_ui_cmd.__wrapped__(write=True)
-
-    mock_client.run_fix.assert_called_once_with("fix.body_ui", write=True)
-    mock_client._poll_run.assert_called_once_with("run-abc-123")
-
-
-async def test_check_ui_write_fix_fails_raises_exit() -> None:
-    mock_client = _make_async_client()
-    mock_client._poll_run.return_value = {"status": "failed", "error": "boom"}
-
-    with patch(_CHECK_UI_CLIENT, return_value=mock_client):
-        with pytest.raises(typer.Exit):
-            await check_ui_cmd.__wrapped__(write=True)
 
 
 # ---------------------------------------------------------------------------

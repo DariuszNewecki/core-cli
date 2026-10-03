@@ -7,8 +7,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from . import app
 
@@ -17,7 +17,7 @@ console = Console()
 
 
 @app.command("docs")
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 6759f022-9e30-474c-8ea3-4740ee55249c
 async def generate_project_docs(
     ctx: typer.Context,

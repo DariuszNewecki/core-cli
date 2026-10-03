@@ -9,8 +9,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from . import app
 
@@ -19,7 +19,7 @@ console = Console()
 
 
 @app.command("onboard")
-@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
+@core_command(dangerous=True)
 # ID: e625b650-05c8-421e-9cf7-073917b43dc9
 async def onboard_project(
     ctx: typer.Context,
@@ -92,7 +92,7 @@ async def onboard_project(
 
 
 @app.command("promote")
-@core_command(dangerous=True, requires_context=False, requires_brain_services=False)
+@core_command(dangerous=True)
 # ID: d2eafb4d-7ead-4d04-bb89-8d78eda8a582
 async def promote_onboard(
     ctx: typer.Context,

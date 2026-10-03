@@ -4,14 +4,8 @@ import logging
 from rich.console import Console
 from rich.table import Table
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -21,15 +15,7 @@ console = Console()
 
 
 @app.command("actions")
-@command_meta(
-    canonical_name="code.actions",
-    behavior=CommandBehavior.READ,
-    layer=CommandLayer.BODY,
-    exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="List all registered Atomic Actions showing their IDs, categories, impact levels, and descriptions.",
-    dangerous=False,
-)
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 4f8e13a3-f017-4d0f-a6ef-340f81d05341
 async def list_actions_cmd() -> None:
     """

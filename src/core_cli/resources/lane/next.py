@@ -1,5 +1,5 @@
 # src/cli/resources/lane/next.py
-"""`core-admin lane next` — pull the next delegated finding to work."""
+"""`core lane next` — pull the next delegated finding to work."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import httpx
 from rich.console import Console
 from rich.panel import Panel
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 3c29ca1d-17fb-4406-8293-b565b36c70d1
 async def next_finding() -> None:
     """Show the oldest delegated finding (the FIFO head of the lane) with detail.
@@ -77,6 +77,6 @@ async def next_finding() -> None:
 
     console.print(Panel("\n".join(lines), title="Assisted Lane — next finding"))
     console.print(
-        "[dim]Claim it with `core-admin lane claim <id> --agent <you>`, then "
-        "propose a fix with `core-admin lane propose <id> --patch <file>`.[/dim]"
+        "[dim]Claim it with `core lane claim <id> --agent <you>`, then "
+        "propose a fix with `core lane propose <id> --patch <file>`.[/dim]"
     )

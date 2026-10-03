@@ -4,6 +4,6 @@ import typer
 
 app = typer.Typer(
     name="vectors",
-    help="Vector store operations (Qdrant).",
+    help="Semantic search over the governed repository's vector index.",
     no_args_is_help=True,
 )

@@ -1,5 +1,5 @@
 # src/cli/resources/lane/claim.py
-"""`core-admin lane claim` — mark a delegated finding as being worked."""
+"""`core lane claim` — mark a delegated finding as being worked."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import httpx
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 6a166026-f99f-4c6c-9a8e-2d415ee10961
 async def claim(
     finding_id: str = typer.Argument(

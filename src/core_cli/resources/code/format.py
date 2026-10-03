@@ -6,8 +6,8 @@ import logging
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -30,7 +30,7 @@ async def _run_and_poll(fix_id: str, *, write: bool) -> None:
 
 
 @app.command("format")
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: 3dfcec28-34fd-44d4-9aec-bcbf29eb6d76
 async def format_command(
     write: bool = typer.Option(
@@ -50,7 +50,7 @@ async def format_command(
 
 
 @app.command("format-imports")
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: 582d69b9-6f50-411a-a950-37e66ce2e07b
 async def format_imports_cmd(
     write: bool = typer.Option(False, "--write", help="Apply import sorting to disk."),

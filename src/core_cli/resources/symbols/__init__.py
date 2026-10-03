@@ -6,7 +6,6 @@ from . import (  # noqa: F401
     audit,
     fix_ids,
     resolve_duplicates,
-    sync,
 )
 from .hub import app
 

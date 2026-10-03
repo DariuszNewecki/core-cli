@@ -1,12 +1,15 @@
 # core-cli
 
 The consumer command-line tool for [CORE](https://github.com/DariuszNewecki/CORE): review
-and approve proposals, manage secrets, onboard a repository (BYOR), and work the assisted
-remediation lane. Its binary is called `core`.
+and approve proposals, run checks and fixes on the repository CORE governs, onboard a
+repository (BYOR), and work the assisted remediation lane. Its binary is called `core`.
 
-`core-cli` is a pure HTTP client. Every command talks to a **running CORE API**; nothing
-runs in-process. The operator tool, `core-admin`, ships separately in `core-runtime`
-([which one do I need?](https://dariusznewecki.github.io/CORE/cli-reference/)).
+`core-cli` is an HTTP client and nothing more. Every command talks to a **running CORE
+API**, using only the routes in CORE's published
+[OpenAPI contract](https://github.com/DariuszNewecki/CORE/blob/main/docs/reference/openapi.json);
+it does not install or import CORE. The operator tool, `core-admin`, ships separately in
+`core-runtime` and covers the CORE installation itself: secrets, vector store, database
+sync ([which one do I need?](https://dariusznewecki.github.io/CORE/cli-reference/)).
 
 ## Prerequisites
 
@@ -24,7 +27,7 @@ runs in-process. The operator tool, `core-admin`, ships separately in `core-runt
 pip install core-cli
 ```
 
-This also installs `core-runtime`, which provides the shared HTTP client.
+Its only dependencies are `typer`, `rich`, `httpx` and `PyYAML`.
 
 ## Configure
 
@@ -51,13 +54,12 @@ Commands that change files or data **preview by default** and act only with `--w
 
 | Group | What it covers |
 |---|---|
-| `proposals` | `list`, `show`, `create`, `approve`, `reject`, `execute` |
+| `proposals` | `list`, `show`, `create`, `approve`, `reject`, `execute`, `integrate` |
 | `lane` | `list`, `next`, `claim`, `propose`: assisted remediation of delegated findings |
 | `project` | `onboard`, `scout`, `promote`, `docs`: bring a repository under governance (BYOR) |
-| `secrets` | `list`, `get`, `set`, `rotate`, `delete`: encrypted secrets in the CORE installation |
 | `code` | quality and verification: `lint`, `format`, `test`, `check-imports`, `audit-duplicates`, … |
-| `symbols` | `audit`, `sync`, `fix-ids`, `resolve-duplicates` |
-| `vectors` | `query`, `status`, `sync`, `sync-code`, `rebuild` |
+| `symbols` | `audit`, `fix-ids`, `resolve-duplicates` |
+| `vectors` | `query`: semantic search over the governed repository |
 
 Every command, option and default is in the generated
 [`core` command reference](https://dariusznewecki.github.io/CORE/reference/core/).
@@ -66,7 +68,10 @@ Every command, option and default is in the generated
 
 The split between the consumer CLI (`core`) and the operator CLI (`core-admin`) is
 recorded in
-[ADR-146](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-146-cli-consumer-operator-split.md).
+[ADR-146](https://github.com/DariuszNewecki/CORE/blob/main/.specs/decisions/ADR-146-cli-consumer-operator-split.md):
+`core` covers operations on the repository CORE governs; `core-admin` covers the CORE
+installation. `tests/test_contract.py` checks every route this client calls against CORE's
+OpenAPI contract.
 
 ## License
 

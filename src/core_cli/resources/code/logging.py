@@ -2,14 +2,8 @@
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
-from shared.cli.command_meta import (
-    CommandBehavior,
-    CommandExposure,
-    CommandLayer,
-    command_meta,
-)
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -18,15 +12,7 @@ console = Console()
 
 
 @app.command("logging")
-@command_meta(
-    canonical_name="code.logging",
-    behavior=CommandBehavior.MUTATE,
-    layer=CommandLayer.BODY,
-    exposure=CommandExposure.GOVERNOR_ONLY,
-    summary="Standardize logging across the codebase.",
-    dangerous=True,
-)
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: 5076493c-79a8-4f92-8c15-ddfd695d4275
 async def fix_logging_command(
     ctx: typer.Context,

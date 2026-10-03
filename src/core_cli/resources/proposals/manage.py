@@ -8,8 +8,8 @@ import httpx
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 
 console = Console()
@@ -79,7 +79,7 @@ def _print_execution_summary(result: dict) -> None:
             console.print(f"      [red]{err}[/red]")
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 9bacc55b-be1d-4f71-a27e-6e83ba176e33
 async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
     """Show detailed breakdown and risk assessment of a proposal."""
@@ -94,7 +94,7 @@ async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
     _print_detailed_info(proposal)
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: f2e065f7-c253-4c33-ae0d-5374ffdb8e23
 async def approve_proposal(
     proposal_id: str = typer.Argument(...),
@@ -131,7 +131,7 @@ async def approve_proposal(
     )
 
 
-@core_command(dangerous=True, confirmation=True, requires_context=False)
+@core_command(dangerous=True, confirmation=True)
 # ID: f4cdc45a-2f42-4916-b4e3-a305b5357a9d
 async def execute_proposal(
     proposal_id: str = typer.Argument(...),
@@ -154,7 +154,7 @@ async def execute_proposal(
     _print_execution_summary(result)
 
 
-@core_command(dangerous=False, requires_context=False)
+@core_command(dangerous=False)
 # ID: 4ac3cfc1-feae-440c-b02f-4c57a6a1147d
 async def reject_proposal(
     proposal_id: str = typer.Argument(...),

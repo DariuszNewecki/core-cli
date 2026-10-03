@@ -7,8 +7,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -17,7 +17,7 @@ console = Console()
 
 
 @app.command("resolve-duplicates")
-@core_command(dangerous=True, requires_context=False, confirmation=True)
+@core_command(dangerous=True, confirmation=True)
 # ID: c9ca3aa7-a542-4f3c-bbf3-d8dc97d4400a
 async def resolve_symbol_duplicates(
     ctx: typer.Context,
@@ -31,7 +31,15 @@ async def resolve_symbol_duplicates(
     mode = "RESOLVING" if write else "ANALYZING"
     console.print(f"[bold cyan]{mode} duplicate ID collisions...[/bold cyan]")
     client = CoreApiClient()
-    result = await client.fix.run_fix("fix.duplicate_ids", write=write)
+    result = await client.run_fix("fix.duplicate_ids", write=write)
     run_id = result.get("run_id")
-    console.print(f"[green]Dispatched fix.duplicate_ids run {run_id}.[/green]")
-    console.print(f"[dim]Poll with: core-admin fix status {run_id}[/dim]")
+    if not run_id:
+        console.print(f"[red]fix.duplicate_ids failed to dispatch: {result}[/red]")
+        raise typer.Exit(1)
+    final = await client._poll_run(run_id)
+    if final.get("status") != "completed":
+        console.print(
+            f"[red]fix.duplicate_ids failed: {final.get('error') or final}[/red]"
+        )
+        raise typer.Exit(1)
+    console.print("[green]✓ fix.duplicate_ids completed.[/green]")

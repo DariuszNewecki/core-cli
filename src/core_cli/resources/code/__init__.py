@@ -7,7 +7,6 @@ from . import (  # noqa: F401
     audit_duplicates,
     bridges,
     check_imports,
-    check_ui,
     docstrings,
     fix_atomic,
     format,

@@ -7,8 +7,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -17,7 +17,7 @@ console = Console()
 
 
 @app.command("query")
-@core_command(requires_context=False)
+@core_command()
 # ID: 44056798-de41-4934-8bba-97e6f88ce1f0
 async def query_vectors(
     ctx: typer.Context,
@@ -35,8 +35,8 @@ async def query_vectors(
     Search constitutional documents using natural language queries.
 
     Examples:
-        core-admin vectors query "file access rules"
-        core-admin vectors query "atomic actions" --collection patterns --limit 3
+        core vectors query "file access rules"
+        core vectors query "atomic actions" --collection patterns --limit 3
     """
     console.print(f"[bold cyan]Querying {collection}[/bold cyan]")
     console.print(f"Query: {query}")

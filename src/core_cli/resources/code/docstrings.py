@@ -4,8 +4,8 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-from api.cli import CoreApiClient
-from cli.utils import core_command
+from core_cli.client import CoreApiClient
+from core_cli.command import core_command
 
 from .hub import app
 
@@ -14,7 +14,7 @@ console = Console()
 
 
 @app.command("docstrings")
-@core_command(dangerous=True, requires_context=False)
+@core_command(dangerous=True)
 # ID: 9f0d0239-d29d-4dff-8c32-3fdecaa809e9
 async def fix_docstrings_command(
     write: bool = typer.Option(False, "--write", help="Apply changes."),
