@@ -25,14 +25,36 @@ _POLL_INTERVAL_SECONDS = 1.0
 _POLL_TERMINAL_STATES = frozenset({"completed", "failed"})
 
 
+# ID: e5aeda69-d26e-4353-81eb-83e998e968e9
+class CoreApiError(httpx.HTTPStatusError):
+    """An error response (status >= 400) from the CORE API.
+
+    An ``httpx.HTTPStatusError``, so commands can branch on
+    ``exc.response.status_code``; ``status_code`` and ``detail`` (the API's
+    ``detail`` field, or the raw body) are also set directly.
+    """
+
+    def __init__(self, response: httpx.Response) -> None:
+        try:
+            detail = response.json().get("detail", response.text)
+        except ValueError:
+            detail = response.text
+        self.status_code = response.status_code
+        self.detail = detail
+        super().__init__(
+            f"API error {response.status_code}: {detail}",
+            request=response.request,
+            response=response,
+        )
+
+
 # ID: 49ef4530-5b49-4ebb-a9f6-b59150780e1b
 class CoreApiClient:
     """Async client for the CORE API.
 
     Methods mirror the API: flat methods for single routes, plus small
     namespaces (``inspect``, ``lane``, ``project``, ``symbols``, ``vectors``)
-    for route families. A response with status >= 400 raises ``RuntimeError``
-    carrying the API's ``detail``.
+    for route families. A response with status >= 400 raises ``CoreApiError``.
     """
 
     def __init__(self, base_url: str | None = None) -> None:
@@ -54,11 +76,7 @@ class CoreApiClient:
         async with httpx.AsyncClient(timeout=timeout) as http:
             response = await http.request(method, f"{self.base_url}{path}", **kwargs)
         if response.status_code >= 400:
-            try:
-                detail = response.json().get("detail", response.text)
-            except ValueError:
-                detail = response.text
-            raise RuntimeError(f"API error {response.status_code}: {detail}")
+            raise CoreApiError(response)
         return response.json()
 
     async def _poll_run(
