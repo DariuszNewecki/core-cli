@@ -48,3 +48,19 @@ packages = ["src/core_cli"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+# B008: typer.Option / typer.Argument as parameter defaults is Typer's
+# documented idiom, not a bug (CORE ignores it for the same reason).
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+# Match the layout the code was written in (CORE's settings): core-runtime's
+# packages group with core_cli, two blank lines after imports.
+known-first-party = ["api", "body", "cli", "core_cli", "mind", "shared", "will"]
+lines-after-imports = 2

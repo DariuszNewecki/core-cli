@@ -19,7 +19,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install ruff
-        run: pip install ruff
+        # Pinned: an unpinned ruff picked up new default rules and turned lint
+        # red on unchanged code (2026-10). Bump deliberately.
+        run: pip install ruff==0.16.10
 
       - name: ruff check
         run: ruff check src/
