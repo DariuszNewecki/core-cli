@@ -296,14 +296,6 @@ class _Project(_Namespace):
             "POST", "/v1/project/onboard/promote", json={"path": path}
         )
 
-    async def generate_docs(
-        self, output: str = "docs/10_CAPABILITY_REFERENCE.md"
-    ) -> dict:
-        """POST /v1/project/docs."""
-        return await self._client._request(
-            "POST", "/v1/project/docs", json={"output": output}
-        )
-
 
 class _Symbols(_Namespace):
     async def get_unassigned(self) -> dict:

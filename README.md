@@ -56,7 +56,7 @@ Commands that change files or data **preview by default** and act only with `--w
 |---|---|
 | `proposals` | `list`, `show`, `create`, `approve`, `reject`, `execute`, `integrate` |
 | `lane` | `list`, `next`, `claim`, `propose`: assisted remediation of delegated findings |
-| `project` | `onboard`, `scout`, `promote`, `docs`: bring a repository under governance (BYOR) |
+| `project` | `onboard`, `scout`, `promote`: bring a repository under governance (BYOR) |
 | `code` | quality and verification: `lint`, `format`, `test`, `check-imports`, `audit-duplicates`, … |
 | `symbols` | `audit`, `fix-ids`, `resolve-duplicates` |
 | `vectors` | `query`: semantic search over the governed repository |

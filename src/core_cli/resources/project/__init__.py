@@ -7,12 +7,11 @@ import typer
 
 app = typer.Typer(
     name="project",
-    help="Operations for project lifecycle: onboarding and documentation.",
+    help="Bring a repository under governance: scout, onboard, promote (BYOR).",
     no_args_is_help=True,
 )
 
 from . import (  # noqa: F401
-    docs,
     onboard,
     scout,
 )
