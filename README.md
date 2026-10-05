@@ -37,6 +37,12 @@ Its only dependencies are `typer`, `rich`, `httpx` and `PyYAML`.
 export CORE_API_URL=http://127.0.0.1:8000
 ```
 
+On the machine running CORE, `core` can use CORE's Unix socket instead of TCP. On that socket the kernel tells CORE who is calling; over TCP it cannot:
+
+```bash
+export CORE_API_URL=unix:///run/core/api.sock
+```
+
 ## Use
 
 ```bash

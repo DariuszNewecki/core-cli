@@ -6,7 +6,9 @@ here is in CORE's published OpenAPI contract, ``docs/reference/openapi.json``
 in the CORE repository; ``tests/test_contract.py`` checks that.
 
 The base URL comes from the ``CORE_API_URL`` environment variable, defaulting
-to the loopback address CORE binds to.
+to the loopback address CORE binds to. ``unix:///path/to/api.sock`` selects
+CORE's Unix socket instead of TCP. On that socket the kernel tells CORE who is
+calling (ADR-132 D10.1 in the CORE repository); over TCP it cannot.
 """
 
 from __future__ import annotations
@@ -19,10 +21,34 @@ import httpx
 
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
+UNIX_SCHEME = "unix://"
+# HTTP needs a host for the request line and Host header; over a Unix socket
+# it names nothing, and CORE does not route on it.
+_UNIX_HTTP_BASE = "http://localhost"
 _TIMEOUT_SECONDS = 30.0
 _LONG_TIMEOUT_SECONDS = 300.0
 _POLL_INTERVAL_SECONDS = 1.0
 _POLL_TERMINAL_STATES = frozenset({"completed", "failed"})
+
+
+# ID: b50ad322-810a-4014-813e-a02a71cd55e7
+def parse_base_url(base_url: str) -> tuple[str, str | None]:
+    """Split a ``CORE_API_URL`` value into (HTTP base URL, Unix socket path).
+
+    ``unix:///run/core/api.sock`` gives ``("http://localhost", "/run/core/api.sock")``;
+    any other value is an HTTP base URL and gives ``(base_url, None)``. The
+    socket path must be absolute, so a mistyped ``unix://`` URL fails here
+    rather than as a confusing connection error.
+    """
+    if not base_url.startswith(UNIX_SCHEME):
+        return base_url, None
+    socket_path = base_url[len(UNIX_SCHEME) :]
+    if not socket_path.startswith("/"):
+        raise ValueError(
+            f"CORE_API_URL {base_url!r}: a Unix socket URL needs an absolute "
+            "path, e.g. unix:///run/core/api.sock"
+        )
+    return _UNIX_HTTP_BASE, socket_path
 
 
 # ID: e5aeda69-d26e-4353-81eb-83e998e968e9
@@ -59,6 +85,7 @@ class CoreApiClient:
 
     def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url or os.environ.get("CORE_API_URL") or DEFAULT_BASE_URL
+        self._http_base, self.socket_path = parse_base_url(self.base_url)
         self.inspect = _Inspect(self)
         self.lane = _Lane(self)
         self.project = _Project(self)
@@ -73,8 +100,11 @@ class CoreApiClient:
         timeout: float = _TIMEOUT_SECONDS,
         **kwargs: Any,
     ) -> dict:
-        async with httpx.AsyncClient(timeout=timeout) as http:
-            response = await http.request(method, f"{self.base_url}{path}", **kwargs)
+        client_kwargs: dict[str, Any] = {"timeout": timeout}
+        if self.socket_path is not None:
+            client_kwargs["transport"] = httpx.AsyncHTTPTransport(uds=self.socket_path)
+        async with httpx.AsyncClient(**client_kwargs) as http:
+            response = await http.request(method, f"{self._http_base}{path}", **kwargs)
         if response.status_code >= 400:
             raise CoreApiError(response)
         return response.json()
