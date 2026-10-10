@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import datetime
 
 import httpx
@@ -62,6 +63,102 @@ def _print_detailed_info(p: dict) -> None:
         console.print(f"\n[red]Failure Reason: {failure_reason}[/red]")
 
 
+def _mark(ok: object) -> str:
+    return "[green]yes[/green]" if ok else "[red]NO[/red]"
+
+
+def _print_review(p: dict) -> None:
+    """The approver's view (CORE ADR-168 Amendment 2026-10-10 R3/R4): who
+    wrote it and why, what it retires, what CORE checked, what resembles it,
+    which decisions touch it. Shown only when the proposal carries them."""
+    constraints = p.get("constitutional_constraints") or {}
+    prov = constraints.get("provenance")
+    if not isinstance(prov, dict):
+        console.print(
+            "\n[yellow]This proposal predates who-and-why records "
+            "(no provenance).[/yellow]"
+        )
+        return
+    console.print("\n[bold]Why it exists:[/bold]")
+    console.print(f"  Anchor: {prov.get('anchor_kind')}")
+    for ref in prov.get("anchor_refs") or []:
+        console.print(f"    {ref}")
+    console.print(f"  Problem owner: {prov.get('problem_owner')}")
+    console.print(f"  Written by: {prov.get('producer')}")
+
+    step_zero = constraints.get("step_zero") or {}
+    retires = step_zero.get("retires")
+    console.print("\n[bold]What it retires:[/bold]")
+    if not retires:
+        console.print("  nothing claimed")
+    for row in retires or []:
+        console.print(
+            f"  {_mark(row.get('verified'))}  {row.get('entry')} - {row.get('reason')}"
+        )
+
+    results = p.get("validation_results") or {}
+    if results:
+        console.print("\n[bold]What CORE checked:[/bold]")
+        for check, ok in sorted(results.items()):
+            console.print(f"  {_mark(ok)}  {check}")
+
+    look = step_zero.get("look_alikes") or {}
+    if look:
+        console.print("\n[bold]Similar existing code:[/bold]")
+        status = look.get("status")
+        if status == "unavailable":
+            console.print(f"  [yellow]not searched: {look.get('reason')}[/yellow]")
+        elif status == "nothing_new":
+            console.print("  no new public function or class")
+        for sym in look.get("symbols") or []:
+            console.print(f"  {sym.get('file')}::{sym.get('symbol')}")
+            for m in (sym.get("matches") or [])[:3]:
+                console.print(
+                    f"    {m.get('score')}  {m.get('file')}::{m.get('symbol')}"
+                )
+
+    decisions = step_zero.get("decisions") or {}
+    mentions = decisions.get("mentions") or {}
+    history = decisions.get("history") or {}
+    if mentions or history:
+        console.print("\n[bold]Decisions touching these files:[/bold]")
+        for path in sorted(set(mentions) | set(history)):
+            named = [
+                f"{a.get('id')} ({a.get('status')})" for a in mentions.get(path) or []
+            ]
+            cited = history.get(path)
+            cited_text = (
+                "history unreadable"
+                if cited is None and path in history
+                else ", ".join(cited or [])
+            )
+            console.print(f"  {path}")
+            if named:
+                console.print(f"    mentioned in: {', '.join(named)}")
+            if cited_text:
+                console.print(f"    cited by past commits: {cited_text}")
+
+
+def _typed_confirmation(proposal_id: str) -> bool:
+    """CORE ADR-168 R2: approval is typed by the human at a real terminal.
+
+    A speed bump, not identity proof (CORE #942): a session without a
+    terminal is refused; a person must type the proposal's short id.
+    """
+    if not sys.stdin.isatty():
+        console.print(
+            "[red]Approval needs a person at a real terminal (CORE ADR-168 R2). "
+            "Not approved.[/red]"
+        )
+        return False
+    expected = proposal_id[:8]
+    typed = typer.prompt(f"Type {expected} to approve this proposal", default="")
+    if typed.strip() != expected:
+        console.print("[yellow]Did not match. Not approved.[/yellow]")
+        return False
+    return True
+
+
 def _print_execution_summary(result: dict) -> None:
     if not result.get("ok") and "actions_executed" not in result:
         console.print(f"Error: {result.get('error', 'Unknown error')}")
@@ -92,6 +189,7 @@ async def show_proposal(proposal_id: str = typer.Argument(...)) -> None:
             raise typer.Exit(1) from exc
         raise
     _print_detailed_info(proposal)
+    _print_review(proposal)
 
 
 @core_command(dangerous=False)
@@ -105,8 +203,23 @@ async def approve_proposal(
         help="Authority under which approval is granted (URS NFR.5).",
     ),
 ) -> None:
-    """Authorize a pending proposal for execution."""
+    """Authorize a pending proposal for execution.
+
+    Shows the proposal and its review, then asks the person at the terminal
+    to type the proposal's short id. Refused without a terminal.
+    """
     client = CoreApiClient()
+    try:
+        proposal = await client.get_proposal(proposal_id)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            console.print(f"[red]Proposal {proposal_id} not found.[/red]")
+            raise typer.Exit(1) from exc
+        raise
+    _print_detailed_info(proposal)
+    _print_review(proposal)
+    if not _typed_confirmation(proposal["proposal_id"]):
+        raise typer.Exit(1)
     try:
         response = await client.approve_proposal(
             proposal_id, approved_by=by, approval_authority=authority

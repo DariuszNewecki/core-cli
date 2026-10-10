@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -168,16 +169,36 @@ async def test_show_proposal_not_found() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_approve_proposal_success() -> None:
-    mock_client = _make_client()
+@contextmanager
+def _terminal(typed: str | None = "abc123de", tty: bool = True):
+    """A person at a real terminal typing *typed* (CORE ADR-168 R2)."""
+    stdin = MagicMock()
+    stdin.isatty.return_value = tty
+    with (
+        patch("core_cli.resources.proposals.manage.sys.stdin", stdin),
+        patch(
+            "core_cli.resources.proposals.manage.typer.prompt", return_value=typed
+        ) as prompt,
+    ):
+        yield prompt
 
+
+async def _approve(mock_client: AsyncMock, proposal_id: str = "abc123") -> None:
     with patch(_MANAGE_CLIENT, return_value=mock_client):
         await approve_proposal.__wrapped__(
-            proposal_id="abc123",
+            proposal_id=proposal_id,
             by="cli_admin",
             authority="principal.governor",
         )
 
+
+async def test_approve_proposal_success() -> None:
+    mock_client = _make_client()
+
+    with _terminal() as prompt:
+        await _approve(mock_client)
+
+    assert "abc123de" in prompt.call_args.args[0]
     mock_client.approve_proposal.assert_called_once_with(
         "abc123",
         approved_by="cli_admin",
@@ -185,34 +206,91 @@ async def test_approve_proposal_success() -> None:
     )
 
 
-async def test_approve_proposal_not_found() -> None:
+async def test_approve_refused_without_a_terminal() -> None:
+    """A session with no terminal (e.g. a model's shell) cannot approve."""
     mock_client = _make_client()
-    mock_client.approve_proposal.side_effect = _http_error(404)
 
-    with patch(_MANAGE_CLIENT, return_value=mock_client):
-        with pytest.raises(typer.Exit) as exc_info:
-            await approve_proposal.__wrapped__(
-                proposal_id="missing",
-                by="cli_admin",
-                authority="principal.governor",
-            )
+    with _terminal(tty=False) as prompt, pytest.raises(typer.Exit) as exc_info:
+        await _approve(mock_client)
 
     assert exc_info.value.exit_code == 1
+    prompt.assert_not_called()
+    mock_client.approve_proposal.assert_not_called()
+
+
+async def test_approve_refused_when_the_typed_id_does_not_match() -> None:
+    mock_client = _make_client()
+
+    with _terminal(typed="yes"), pytest.raises(typer.Exit):
+        await _approve(mock_client)
+
+    mock_client.approve_proposal.assert_not_called()
+
+
+async def test_approve_proposal_not_found() -> None:
+    mock_client = _make_client()
+    mock_client.get_proposal.side_effect = _http_error(404)
+
+    with _terminal(), pytest.raises(typer.Exit) as exc_info:
+        await _approve(mock_client, "missing")
+
+    assert exc_info.value.exit_code == 1
+    mock_client.approve_proposal.assert_not_called()
 
 
 async def test_approve_proposal_bad_request_prints_detail() -> None:
     mock_client = _make_client()
     mock_client.approve_proposal.side_effect = _http_error(400, "already approved")
 
-    with patch(_MANAGE_CLIENT, return_value=mock_client):
-        with pytest.raises(typer.Exit) as exc_info:
-            await approve_proposal.__wrapped__(
-                proposal_id="abc123",
-                by="cli_admin",
-                authority="principal.governor",
-            )
+    with _terminal(), pytest.raises(typer.Exit) as exc_info:
+        await _approve(mock_client)
 
     assert exc_info.value.exit_code == 1
+
+
+async def test_show_renders_who_why_and_step_zero(capsys) -> None:
+    proposal = _sample_proposal()
+    proposal["validation_results"] = {"full_audit": True, "tests": False}
+    proposal["constitutional_constraints"] = {
+        "provenance": {
+            "anchor_kind": "governor_request",
+            "anchor_refs": ["add a status line"],
+            "problem_owner": "governor",
+            "producer": "claude-session:core-darek",
+            "retires": ["src/old.py"],
+        },
+        "step_zero": {
+            "retires": [
+                {
+                    "entry": "src/old.py",
+                    "verified": True,
+                    "reason": "deleted by the patch",
+                }
+            ],
+            "look_alikes": {"status": "unavailable", "reason": "qdrant down"},
+            "decisions": {
+                "mentions": {"src/old.py": [{"id": "ADR-005", "status": "accepted"}]},
+                "history": {"src/old.py": None},
+            },
+        },
+    }
+    mock_client = _make_client()
+    mock_client.get_proposal.return_value = proposal
+
+    with patch(_MANAGE_CLIENT, return_value=mock_client):
+        await show_proposal.__wrapped__(proposal_id="abc123")
+
+    out = capsys.readouterr().out
+    for text in (
+        "add a status line",
+        "claude-session:core-darek",
+        "deleted by the patch",
+        "full_audit",
+        "not searched: qdrant down",
+        "ADR-005 (accepted)",
+        "history unreadable",
+    ):
+        assert text in out, text
 
 
 # ---------------------------------------------------------------------------
